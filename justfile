@@ -21,12 +21,15 @@ setup:
 
 build: setup
   podman run --rm -v $(pwd):/volume -w /volume gamu-env \
-      sh -c "just lint test release"
+    sh -c "just lint test release"
+
+clean:
+    podman run --rm -v $(pwd):/volume -w /volume gamu-env cargo clean
 
 commit message:
   git commit -am "{{message}}"
 
-ci:
+push:
   git push
 
 deploy version: lint test release
