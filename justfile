@@ -1,3 +1,5 @@
+default: lint test
+
 build:
   cargo build
 
