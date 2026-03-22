@@ -7,27 +7,41 @@ on:
     branches: [ "main" ]
 
 jobs:
-  quality-control:
+  integration:
     runs-on: ubuntu-latest
-    container: 
-      image: rust:alpine
+    container:
+      image: ./Dockerfile
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install Build Tools
-        # Alpine's 'apk' is fast. We add 'musl-dev' for the linker
-        # and 'just' to run your checklist.
-        run: |
-          apk add --no-cache musl-dev just git
-          rustup component add rustfmt clippy
-
       - name: Run Linter
-        # This runs your 'just' tasks exactly like you do on Arch
         run: just lint
 
       - name: Run Tests
         run: just test
 
       - name: Run Release Build
-        run: just build
+        run: just release
+
+  deploy:
+    runs-on: ubuntu-latest
+    container:
+      image: ./Dockerfile
+
+    needs: integration
+
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Release Build
+        run: just release
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: target/release/gamu
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
