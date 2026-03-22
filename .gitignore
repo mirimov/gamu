@@ -1,0 +1,17 @@
+# Meson/Ninja Build Folders
+build/
+build_gb/
+subprojects/
+
+# GBDK Artifacts
+*.gb
+*.map
+*.ihx
+*.cdb
+*.noi
+*.lst
+
+# Editor stuff
+.vscode/
+.clang-tidy-cache
+compile_commands.json
