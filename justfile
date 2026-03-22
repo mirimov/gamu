@@ -1,15 +1,22 @@
-run:
-    build/game.out
+build:
+  cargo build
 
 lint:
-    clang-tidy src/main.c  --  -I./include -std=c23
+  cargo fmt --check
+  cargo clippy -- -D warnings
 
-build: lint
-    meson compile -C build
+run:
+  cargo run
 
-setup:
-    meson setup build
-    ln -s build/compile_commands.json .
+release:
+  cargo build --release
 
-clean:
-    rm -rf build/ builddir
+test:
+  cargo test
+
+format:
+  cargo fmt
+
+deploy: lint test release
+  # todo
+
