@@ -9,39 +9,37 @@ on:
 jobs:
   integration:
     runs-on: ubuntu-latest
-    container:
-      image: ./Dockerfile
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Run Linter
-        run: just lint
+      # 1. Build the Alpine environment from your Dockerfile
+      - name: Build Alpine Environment
+        run: docker build -t gamu-env .
 
-      - name: Run Tests
-        run: just test
-
-      - name: Run Release Build
-        run: just release
+      # 2. Run your 'Just' commands INSIDE that built image
+      - name: Run Quality Gate
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/volume -w /volume gamu-env \
+            sh -c "just lint test release"
 
   deploy:
     runs-on: ubuntu-latest
-    container:
-      image: ./Dockerfile
-
     needs: integration
-
     if: startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Run Release Build
-        run: just release
+      - name: Build Release Artifact
+        run: |
+          docker build -t gamu-env .
+          docker run --rm -v ${{ github.workspace }}:/volume -w /volume gamu-env \
+            just release
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           files: target/release/gamu
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
