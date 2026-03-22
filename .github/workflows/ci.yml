@@ -1,0 +1,31 @@
+name: CI Checklist
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  quality-control:
+    container: 
+      image: rust:alpine
+    steps:
+      - name: Checkout Code
+      - uses: actions/checkout@v4
+
+      - name: Install Build Tools
+        # Alpine's 'apk' is fast. We add 'musl-dev' for the linker
+        # and 'just' to run your checklist.
+        run: |
+          apk add --no-cache musl-dev just git
+
+      - name: Run Linter
+        # This runs your 'just' tasks exactly like you do on Arch
+        run: just lint
+
+      - name: Run Tests
+        run: just test
+
+      - name: Run Release Build
+        run: just build
