@@ -3,6 +3,7 @@ name: CI Checklist
 on:
   push:
     branches: [ "main" ]
+    tags: [ "v*" ] # Tells GitHub: "Listen for tags too"
   pull_request:
     branches: [ "main" ]
 
@@ -29,16 +30,18 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
+      # This is the critical step: Build the binary IN the container
       - name: Build Release Artifact
         run: |
           docker build -t gamu-env .
           docker run --rm -v ${{ github.workspace }}:/volume -w /volume gamu-env \
             just release
 
+      # Now the file actually exists on the runner's disk
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: target/release/gamu
         env:
