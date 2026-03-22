@@ -1,0 +1,24 @@
+---
+# Enable specific categories of checks
+Checks: >
+  bugprone-*,
+  readability-*,
+  portability-*,
+  performance-*,
+  -clang-diagnostic-implicit-int,
+  -clang-diagnostic-error,
+  -readability-braces-around-statements,
+  -readability-magic-numbers,
+  -readability-identifier-length,
+
+# Treat all warnings as build errors
+WarningsAsErrors: '*'
+
+# Configuration for specific rules
+CheckOptions:
+  - key:             readability-identifier-naming.VariableCase
+    value:           lower_case
+  - key:             readability-identifier-naming.FunctionCase
+    value:           lower_case
+  - key:             bugprone-argument-comment.StrictMode
+    value:           'true'
