@@ -13,7 +13,7 @@ jobs:
       image: rust:alpine
     steps:
       - name: Checkout Code
-      - uses: actions/checkout@v4
+        uses: actions/checkout@v4
 
       - name: Install Build Tools
         # Alpine's 'apk' is fast. We add 'musl-dev' for the linker
