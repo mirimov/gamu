@@ -1,8 +1,5 @@
 default: lint test
 
-build:
-  cargo build
-
 lint:
   cargo fmt --check
   cargo clippy -- -D warnings
@@ -19,6 +16,15 @@ test:
 format:
   cargo fmt
 
-deploy: lint test release
-  # todo
+setup:
+  podman build -t gamu-env .
+
+build: setup
+    podman run --rm -v $(pwd):/volume -w /volume gamu-env \
+        sh -c "just lint test release"
+
+deploy version: lint test release
+  git tag -a v{{version}} -m "Release v{{version}}"
+  git push origin v{{version}}
+  @echo "🚀 Release v{{version}} initiated! Check GitHub Actions for the build."
 
