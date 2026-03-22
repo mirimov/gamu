@@ -20,6 +20,7 @@ jobs:
         # and 'just' to run your checklist.
         run: |
           apk add --no-cache musl-dev just git
+          rustup component add rustfmt clippy
 
       - name: Run Linter
         # This runs your 'just' tasks exactly like you do on Arch
