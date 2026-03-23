@@ -1,42 +1,73 @@
-use crate::types::Int;
+use crate::numeric_struct;
+use crate::types::*;
 
-#[derive(Default)]
-pub struct GameInput {
-  shot_fired: bool,
-  shot_gone: bool,
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct GamuInput(Int);
+
+pub fn input() -> GamuInput {
+  GamuInput(0)
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+pub enum Action {
+  None = 0,
+  ShotFired = 1,
+  ShotGone = 1 << 1,
+}
+
+impl GamuInput {
+  pub fn has(&self, action: Action) -> bool {
+    (self.0 & (action as Int)) != 0
+  }
+
+  pub fn press(&self, action: Action) -> Self {
+    Self(self.0 | (action as Int))
+  }
+}
+
+numeric_struct!(BusterCounter, val => {
+  debug_assert!(
+    (0..=3).contains(&val),
+    "Invariant Violation: ShotCount {} is out of bounds!",
+    val
+  )
+});
+
 pub struct GameState {
-  available_buster: Int,
+  available_buster: BusterCounter,
   shots_flying: Int,
 }
 
 pub fn start() -> GameState {
   GameState {
-    available_buster: 3,
+    available_buster: 3.into(),
     shots_flying: 0,
   }
 }
 
-pub fn update(prev: GameState, input: GameInput) -> GameState {
+pub fn update(prev: GameState, input: GamuInput) -> GameState {
   GameState {
-    available_buster: update_available_buster(prev.available_buster, input.shot_fired),
-    shots_flying: update_shots_flying(prev.shots_flying, input.shot_fired, input.shot_gone),
+    available_buster: update_available_buster(prev.available_buster, input),
+    shots_flying: update_shots_flying(prev.shots_flying, input),
   }
 }
 
-fn update_available_buster(available: Int, fired: bool) -> Int {
-  let table = [(fired && available > 0, -1, 0)];
-  sum_conditions(available, &table[..])
+fn update_available_buster(available: BusterCounter, input: GamuInput) -> BusterCounter {
+  let fired = input.has(Action::ShotFired);
+  let table = [(fired && available > 0.into(), -1, 0)];
+  sum_conditions(available.into(), &table[..]).into()
 }
 
-fn update_shots_flying(shots_flown: Int, fired: bool, gone: bool) -> Int {
+fn update_shots_flying(shots_flown: Int, input: GamuInput) -> Int {
+  let fired = input.has(Action::ShotFired);
+  let gone = input.has(Action::ShotGone);
   let table = [(fired && shots_flown < 3, 1, 0), (gone, -1, 0)];
 
   sum_conditions(shots_flown, &table[..])
 }
 
-fn sum_conditions(initial: i32, table: &[(bool, i32, i32)]) -> i32 {
+fn sum_conditions(initial: Int, table: &[(bool, Int, Int)]) -> Int {
   let mut result = initial;
   for (condition, counted, not_counted) in table {
     if *condition {
@@ -52,15 +83,6 @@ fn sum_conditions(initial: i32, table: &[(bool, i32, i32)]) -> i32 {
 mod test {
   use super::*;
 
-  macro_rules! input {
-    ($($field:ident : $val:expr),*) => {
-      GameInput {
-        $($field: $val,)*
-        ..GameInput::default()
-      }
-    };
-  }
-
   #[test]
   fn basic_game_state() {
     let s = start();
@@ -68,9 +90,9 @@ mod test {
   }
 
   #[test]
-  fn no_shot_fired_available_buster_unchanged() {
+  fn no_shot_fired_means_available_buster_unchanged() {
     let s = start();
-    let shot = update(s, input!(shot_fired: false));
+    let shot = update(s, input());
 
     assert_eq!(shot.available_buster, 3);
   }
@@ -78,7 +100,7 @@ mod test {
   #[test]
   fn basic_shot_fired_state() {
     let s = start();
-    let shot = update(s, input!(shot_fired: true));
+    let shot = update(s, input().press(Action::ShotFired));
     assert_eq!(shot.available_buster, 2);
   }
 
@@ -88,11 +110,11 @@ mod test {
 
     let mut shot = s;
     for i in 1..3 {
-      shot = update(shot, input!(shot_fired: true));
+      shot = update(shot, input().press(Action::ShotFired));
       assert_eq!(shot.available_buster, 3 - i);
     }
 
-    let cant_shot = update(shot, input!(shot_fired: true));
+    let cant_shot = update(shot, input().press(Action::ShotFired));
     assert_eq!(cant_shot.available_buster, 0);
   }
 
@@ -105,14 +127,14 @@ mod test {
   #[test]
   fn no_shot_fired_no_shots_flying_state() {
     let s = start();
-    let shot = update(s, input!(shot_fired: false));
+    let shot = update(s, input());
     assert_eq!(shot.shots_flying, 0);
   }
 
   #[test]
   fn basic_shot_flying_state() {
     let s = start();
-    let shot = update(s, input!(shot_fired: true));
+    let shot = update(s, input().press(Action::ShotFired));
     assert_eq!(shot.shots_flying, 1);
   }
 
@@ -122,18 +144,18 @@ mod test {
 
     let mut state = s;
     for i in 1..=3 {
-      state = update(state, input!(shot_fired: true));
+      state = update(state, input().press(Action::ShotFired));
       assert_eq!(state.shots_flying, i);
     }
 
-    let no_more_shots_flying = update(state, input!(shot_fired: true));
+    let no_more_shots_flying = update(state, input().press(Action::ShotFired));
     assert_eq!(no_more_shots_flying.shots_flying, 3);
   }
 
   #[test]
   fn shot_gone_means_less_shots_flying() {
     let s = setup_ran_out_of_shots();
-    let shot = update(s, input!(shot_gone: true));
+    let shot = update(s, input().press(Action::ShotGone));
     assert_eq!(shot.shots_flying, 2);
   }
 
@@ -142,7 +164,7 @@ mod test {
 
     let mut shot = s;
     for i in 1..=3 {
-      shot = update(shot, input!(shot_fired: true));
+      shot = update(shot, input().press(Action::ShotFired));
       assert_eq!(shot.shots_flying, i);
     }
 
