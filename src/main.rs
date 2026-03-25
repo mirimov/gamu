@@ -1,4 +1,4 @@
 fn main() {
-  let _s = gamu::logic::start();
+  let _s = gamu::logic::Game::start();
   println!("Hello, world!");
 }
