@@ -3,4 +3,7 @@ name = "gamu"
 version = "0.1.0"
 edition = "2024"
 
+[dev-dependencies]
+speculate = "0.1.2"
+
 [dependencies]
